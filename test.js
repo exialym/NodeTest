@@ -1,6 +1,6 @@
 var http = require('http'); 
-var selfModule = require('E:\\Git\\NodeTest\\selfModule.js');
-var timeout = require('E:\\Git\\NodeTest\\timeout.js');
+var selfModule = require('./selfModule.js');
+var timeout = require('./timeout.js');
 console.log('done!');
 http.createServer(function (req, res) {
 	res.writeHead(200, {'Content-Type': 'text/plain'});
