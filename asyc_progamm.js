@@ -104,3 +104,117 @@ myStream.emit('event1', "I am stream!");
 
 
 /*********************************************************************Promise/Deferred模式******************/
+//使用event来模拟
+//首先promise继承event,我们将在promise里完成事件的订阅和发布
+//这里定义了3个方法，done，fail和它们的组合then
+//done和fail都使用once来绑定事件，保证其只执行一次
+//新定义的这三个方法完成了事件的订阅，并且都返回了自己以完成链式调用
+var Promise = function () {   
+	emitter.EventEmitter.call(this);
+}; 
+util.inherits(Promise, emitter.EventEmitter);  
+Promise.prototype.then = function (fulfilledHandler, errorHandler, progressHandler) {   
+	if (typeof fulfilledHandler === 'function') {       
+		this.once('success', fulfilledHandler);   
+	}   
+	if (typeof errorHandler === 'function') {   
+		this.once('error', errorHandler);   
+	}   
+	if (typeof progressHandler === 'function') {     
+		this.on('progress', progressHandler);   
+	}   
+	return this; 
+};
+Promise.prototype.done = function (fulfilledHandler) {   
+	if (typeof fulfilledHandler === 'function') {       
+		this.once('success', fulfilledHandler);   
+	}   
+	return this; 
+};
+Promise.prototype.fail = function (errorHandler) {   
+	if (typeof errorHandler === 'function') {   
+		this.once('error', errorHandler);   
+	}   
+	return this; 
+};
+//deferred这个对象是触发事件状态转变的地方
+var Deferred = function () {   
+	this.state = 'unfulfilled';  
+	this.promise = new Promise(); 
+};  
+Deferred.prototype.resolve = function (obj) {   
+	this.state = 'fulfilled';   
+	this.promise.emit('success', obj); 
+};  
+Deferred.prototype.reject = function (err) {   
+	this.state = 'failed';   
+	this.promise.emit('error', err); 
+};  
+Deferred.prototype.progress = function (data) {   
+	this.promise.emit('progress', data); 
+}; 
+Deferred.prototype.all = function (promises) { 
+	var count = promises.length;   
+	var that = this;   
+	var results = [];   
+	promises.forEach(function (promise, i) {     
+		promise.then(function (data) {       
+			count--;       
+			results[i] = data;       
+			if (count === 0) {         
+				that.resolve(results);       
+			}     
+		}, function (err) {       
+			that.reject(err);     
+		});   
+	});   
+	return this.promise; 
+};
+
+var when = function (func) {
+	var defrred = new Deferred();
+	func(defrred);
+	return defrred.promise;
+};
+var after = function(promises) {
+	var defrred = new Deferred();
+	return defrred.all(promises);
+}
+function eat(dfd) {
+	console.log('give me apple or beef');
+	var tasks = function(){
+		if (food=='apple') {
+			console.log('you give me apple');
+			dfd.reject();
+		} 
+		if (food=='beef') {
+			console.log('you give me beef');
+			dfd.resolve();
+		}
+	};
+	setTimeout(tasks,5000);
+	
+}
+function drink(dfd) {
+	console.log('give me water or coffee');
+	var tasks = function(){
+		if (drinking=='water') {
+			console.log('you give me water');
+			dfd.reject();
+		} 
+		if (drinking=='coffee') {
+			console.log('you give me coffee');
+			dfd.resolve();
+		}
+	};
+	setTimeout(tasks,6000);
+	
+}
+var food = 'beef';
+var drinking = 'coffee';
+when(eat)
+	.done(function(){ console.log('I eat beef'); })
+	.fail(function(){ console.log('I throw apple'); });
+after([when(eat),when(drink)])
+	.done(function(){ console.log('I eat all'); })
+	.fail(function(){ console.log('I don\'t like one of those'); })
