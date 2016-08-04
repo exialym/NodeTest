@@ -218,3 +218,65 @@ when(eat)
 after([when(eat),when(drink)])
 	.done(function(){ console.log('I eat all'); })
 	.fail(function(){ console.log('I don\'t like one of those'); })
+/*********************************************************************流程控制库******************/
+//异步的串行
+var async = require("async");
+var fs = require("fs");
+async.series([function (callback) {  
+		console.log("reading 1");   
+		fs.readFile('file1.txt', 'utf-8', callback); 
+	}, function (callback) {     
+		//fs.readFile('file2.txt', 'utf-8', callback);   
+		console.log("reading 2");
+		callback("2222222","33333");
+	}], function (err, results) {   
+		// results => [file1.txt, file2.txt] 
+		console.log("results:"+results);
+	}); 
+//异步的并行
+async.parallel([   function (callback) {     
+		fs.readFile('file1.txt', 'utf-8', callback);   
+	},   
+	function (callback) {     
+		fs.readFile('file2.txt', 'utf-8', callback);   
+	} ], 
+	function (err, results) {   // results => [file1.txt, file2.txt] 
+		console.log("results:"+results);
+	});
+//异步调用的依赖处理
+async.waterfall([   function (callback) {     
+		//file1.txt里下一个文件的地址
+		fs.readFile('file1.txt', 'utf-8', function (err, content) { callback(err, content); });   
+	},  function (arg1, callback) {     // arg1 => file2.txt     
+		fs.readFile(arg1, 'utf-8', function (err, content) { callback(err, content); }); 
+	}], function (err, result) {    
+		// result => file2.txt 
+		console.log("results:"+result);
+	});
+
+var deps = {   
+	readConfig: function (callback) {     
+		console.log("// read config file");     
+		console.log(callback);
+	},   
+	connectMongoDB: ['readConfig', function (callback) {     
+		console.log("// connect to mongodb");     
+		console.log(callback);  
+	}],   
+	connectRedis: ['readConfig', function (callback) {     
+		console.log("// connect to redis  ");   
+		//callback();
+	}],  
+	complieAsserts: function (callback) {     
+		console.log("// complie asserts");     
+		//callback();   
+	},   
+	uploadAsserts: ['complieAsserts', function (callback) {     
+		console.log("// upload to assert");    
+		//callback();   
+	}],   
+	startup: ['connectMongoDB', 'connectRedis', 'uploadAsserts', function (callback) {     
+		console.log("// startup ");  
+	}] 
+};
+async.auto(deps); 
