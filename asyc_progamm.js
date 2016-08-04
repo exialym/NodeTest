@@ -280,3 +280,11 @@ var deps = {
 	}] 
 };
 async.auto(deps); 
+//异步并发控制
+async.parallelLimit([   function (callback) {     
+		fs.readFile('file1.txt', 'utf-8', callback);   
+	},   function (callback) {     
+		fs.readFile('file2.txt', 'utf-8', callback);   
+	} ], 1, function (err, results) {   
+		console.log("resultsLimit:"+results);
+	});
