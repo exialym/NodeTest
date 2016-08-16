@@ -12,6 +12,11 @@
 		<input type="text" name="username" id="username" />    <br />  
 		<input type="submit" name="submit" value="Submit" /> 
 	</form> 
+	<form action="/index/upload_file" method="post" enctype="multipart/form-data">   
+		<label for="username">Username:</label> <input type="text" name="username" id="username" />    
+		<label for="file">Filename:</label> <input type="file" name="file" id="file" multiple="multiple"/>    <br />   
+		<input type="submit" name="submit" value="Submit" /> 
+	</form> 
 </body>
 </html>
 
