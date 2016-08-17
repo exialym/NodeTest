@@ -52,7 +52,7 @@ function handle(req,res) {
 	var cookies = parseCookie(req.headers.cookies);
 	//console.log('cookies:'+cookies);
 	var module; 
-	try {     // require的缓存机制使有是阻塞的     
+	try {        
 		module = require('./controllers/' + controller);   
 	} catch (ex) {     
 		res.writeHead(500);     
@@ -67,12 +67,6 @@ function handle(req,res) {
 	 	res.end('no such controller');
 	 	return;   
 	}
-	// if (handles[controller] && handles[controller][action]) {     
-	// 	handles[controller][action].apply(null, [req, res].concat(args));   
-	// } else {     
-	// 	res.writeHead(500);     
-	// 	res.end('no such controller');   
-	// }
 	switch (req.method) {   
 		case 'POST':     
 			update(req, res);     
@@ -153,3 +147,44 @@ var parseCookie = function (cookie) {
 // 		}   
 // 	}); 
 // }; 
+
+//RESTful
+var routes = {'all': []}; 
+var app = {}; 
+app.use = function (path, action) {   
+	routes.all.push([pathRegexp(path), action]); 
+};  
+['get', 'put', 'delete', 'post'].forEach(function (method) {   
+	routes[method] = [];   
+	app[method] = function (path, action) {     
+		routes[method].push([pathRegexp(path), action]);   
+	}; 
+}); 
+// 加用户 
+app.post('/user/:username', addUser); 
+app.delete('/user/:username', removeUser); 
+app.put('/user/:username', updateUser); 
+app.get('/user/:username', getUser); 
+function (req, res) {   
+	var pathname = url.parse(req.url).pathname;   
+	// 将请求方法为小写   
+	var method = req.method.toLowerCase();   
+	if (routes.hasOwnPerperty(method)) {     
+		// 据请求方法分发     
+		if (match(pathname, routes[method])) {       
+			return;     
+		} else {       
+			// 如路径有配不成功试all()处理       
+			if (match(pathname, routes.all)) {         
+				return;       
+			}     
+		}   
+	} else {     
+		// 接all()处理     
+		if (match(pathname, routes.all)) {       
+			return;     
+		} 
+	}   
+	// 处理404请求   
+	handle404(req, res); 
+}
