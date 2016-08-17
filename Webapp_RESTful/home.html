@@ -1,0 +1,38 @@
+<!DOCTYPE html>
+<html lang="zh-CN">
+<head>
+	<meta charset="utf-8" />
+	<meta http-equiv="X-UA-Compatible" content="IE=edge" />
+	<meta name="viewport" content="width=device-width, initial-scale=1" />
+	<title>首页</title>   
+</head>
+<body>
+	<form action="/index/upload" method="post">   
+		<label for="username">Username:</label> 
+		<input type="text" name="username" id="username" />    <br />  
+		<input type="submit" name="submit" value="Submit" /> 
+	</form> 
+	<form action="/index/upload_file" method="post" enctype="multipart/form-data">   
+		<label for="username">Username:</label> <input type="text" name="username" id="username" />    
+		<label for="file">Filename:</label> <input type="file" name="file" id="file" multiple="multiple"/>    <br />   
+		<input type="submit" name="submit" value="Submit" /> 
+	</form> 
+</body>
+</html>
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
