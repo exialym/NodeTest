@@ -55,6 +55,18 @@ function cookie(req, res, next) {
 	console.log("处理Cookie");   
 	next(); 
 }
+ function staticFile(req, res, next) {   
+ 	var pathname = url.parse(req.url).pathname; 
+ 	console.log("pathname:"+pathname); 
+ 	fs.readFile(path.join(ROOT, pathname), function (err, file) {     
+ 		if (err) {       
+ 			return next(err);     
+ 		}     
+ 		res.writeHead(200);     
+ 		res.end(file);   
+ 	}); 
+ 	next(); 
+ };
 //错误处理中间件1
 function errorProsseser1(err, req, res, next){
 	res.write('error1');
@@ -154,6 +166,7 @@ app.post('/user/:username', addUser);
 app.delete('/user/:username', removeUser); 
 app.put('/user/:username', updateUser); 
 app.use(querystring);
+app.use('/static/name.:ext',staticFile);
 app.use(errorProsseser1);
 app.use(errorProsseser2);
 app.get('/user/:username/:ID', cookie , getUser);
@@ -176,9 +189,12 @@ function getUser(req, res){
 	res.end('\nCookie:'+req.cookies);
 }
 function getGames(req, res){
-	res.write('getGames:'+req.params.username);
-	res.write('\nquery:'+req.query.haha);
-	res.end('\nCookie:'+req.cookies);
+	fs.readFile('home.html', 'utf-8', function(err,data){
+		res.writeHead(200);
+		console.log(err);   
+		res.write(data);
+		res.end(); 
+	});
 }
 
 var server = http.createServer(function (req, res) {   
@@ -191,8 +207,11 @@ var server = http.createServer(function (req, res) {
 	var match = function (pathname, routes) {   
 		var stacks = []; 
 		for (var i = 0; i < routes.length; i++) {     
-			var route = routes[i];     // 正则配     
-			var reg = route.path.regexp;     
+			var route = routes[i];     // 正则配  
+			console.log(pathname);
+
+			var reg = route.path.regexp; 
+			console.log(reg);     
 			var keys = route.path.keys;    
 			if (reg.toString()==='/^\\/$/') {
 				stacks = stacks.concat(route.stack);
