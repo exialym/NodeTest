@@ -1,7 +1,6 @@
 var http = require('http'); 
 var url = require("url");
 var fs = require("fs");
-var querystring = require('querystring');
 var crypto = require('crypto');
 var formidable = require('formidable'); 
 
@@ -35,13 +34,14 @@ var pathRegexp = function(path) {
 
 
 // querystring解析中间件 
-var querystring = function (req, res, next) {   
+function querystring(req, res, next) {   
 	req.query = url.parse(req.url, true).query;
+	//varreq.aaa.aaa;
 	console.log("处理查询条件");   
 	next(); 
-}; 
+}
 // cookie解析中间件 
-var cookie = function (req, res, next) {   
+function cookie(req, res, next) {   
 	var cookie = req.headers.cookie;   
 	var cookies = {};   
 	if (cookie) {     
@@ -54,10 +54,19 @@ var cookie = function (req, res, next) {
 	req.cookies = cookies;  
 	console.log("处理Cookie");   
 	next(); 
-}; 
-
-
-//RESTful
+}
+//错误处理中间件1
+function errorProsseser1(err, req, res, next){
+	res.write('error1');
+	next(); 
+}
+//错误处理中间件2
+function errorProsseser2(err, req, res, next){
+	res.write('error2');
+	res.end();
+	next(); 
+}
+//RESTful路由
 var routes = {'all': []}; 
 var app = {}; 
 app.use = function (path) {   
@@ -94,27 +103,62 @@ app.use = function (path) {
 	}; 
 }); 
 
+//中间件尾触发调度函数
 var handle = function (req, res, stack) {  
-	var quene = stack.slice(0);
-	var next = function () {     
+	var quene = stack.filter(function (middleware) {     
+		return middleware.length !== 4;   
+	});
+	var errorQuene = stack.filter(function (middleware) {     
+		return middleware.length === 4;   
+	});
+	var next = function (err) {     
 		// 从stack数组中出中间件执行    
+		if (err) {       
+			return handle500(err, req, res, errorQuene);     
+		} 
+		console.log(quene);
 		var middleware = quene.shift();  
+		console.log(middleware);
 		if (middleware) {       
 			// 传入next()函数自使中间件能执行结递    
-			middleware(req, res, next);     
+			try {         
+				middleware(req, res, next);       
+			} catch (ex) { 
+				console.log('catch error');        
+				next(ex);       
+			}     
+		}   
+	};  
+	// 启动执行   
+	next(); 
+}; 
+//错误处理中间件调度函数
+var handle500 = function (err, req, res, stack) {   
+	// 异常处理中间件   
+	console.log(stack);
+	console.log(err);
+	var next = function () {     
+	// 从stack数组中出中间件执行     
+		var middleware = stack.shift();     
+		if (middleware) {       
+		// 传递异常对象       
+			middleware(err, req, res, next);     
 		}   
 	};  
 	// 启动执行   
 	next(); 
 }; 
 
-// 加用户 
+// 路由绑定
 app.post('/user/:username', addUser); 
 app.delete('/user/:username', removeUser); 
 app.put('/user/:username', updateUser); 
 app.use(querystring);
+app.use(errorProsseser1);
+app.use(errorProsseser2);
 app.get('/user/:username/:ID', cookie , getUser);
 app.get('/games/:username', getGames); 
+
 
 function addUser(req, res){
 	res.end('addUser');
@@ -142,15 +186,14 @@ var server = http.createServer(function (req, res) {
 	//http://localhost:1337/user/ahaha/777
 	var pathname = url.parse(req.url).pathname;   
 	// 将请求方法为小写   
-	var method = req.method.toLowerCase();   
+	var method = req.method.toLowerCase(); 
+	//匹配路由  
 	var match = function (pathname, routes) {   
 		var stacks = []; 
 		for (var i = 0; i < routes.length; i++) {     
 			var route = routes[i];     // 正则配     
 			var reg = route.path.regexp;     
 			var keys = route.path.keys;    
-			console.log(reg);
-			console.log(pathname);
 			if (reg.toString()==='/^\\/$/') {
 				stacks = stacks.concat(route.stack);
 			}
