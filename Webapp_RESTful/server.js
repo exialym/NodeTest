@@ -162,15 +162,31 @@ var handle500 = function (err, req, res, stack) {
 	// 启动执行   
 	next(); 
 }; 
-var render = function (str, data) {   
-	var tpl = str.replace(/<%=([\s\S]+?)%>/g, function(match, code) { 
-		console.log(code);
-		return "' + obj." + code + ";";   
-	}); 
-	tpl = "var tpl = '" + tpl + "\nreturn tpl;";   
-	console.log(tpl);
-	var complied = new Function('obj', tpl);   
-	return complied(data); 
+// var complied = function(str) {
+// 	var tpl = str.replace(/<%=([\s\S]+?)%>/g, function(match, code) { 
+// 		return "' + obj." + code + ";";   
+// 	}); 
+// 	tpl = "var tpl = '" + tpl + "\nreturn tpl;";   
+// 	return new Function('obj', tpl);
+// }
+var escape = function (html) {   
+	return String(html)
+		.replace(/&(?!\w+;)/g, '&amp;')     
+		.replace(/</g, '&lt;')     
+		.replace(/>/g, '&gt;')     
+		.replace(/"/g, '&quot;')     
+		.replace(/'/g, '&#039;'); 
+};
+var complie = function (str) {   // 模板是换的   
+	var tpl = str.replace(/<%=([\s\S]+?)%>/g, function (match, code) {      
+		return "' +  escape(" + code + ");";   
+	});  
+	tpl = "tpl = '" + tpl + "";   
+	tpl = 'var tpl = "";\nwith (obj) {' + tpl + '}\nreturn tpl;'; 
+	return new Function('obj','escape', tpl); 
+}; 
+var render = function (complied, data) {   
+	return complied(data,escape); 
 };
 // 路由绑定
 app.post('/user/:username', addUser); 
@@ -219,11 +235,13 @@ function getGames(req, res){
 		res.setHeader('Content-Type', 'text/html');   
 		fs.readFile(view, 'utf-8', function(err,templete){
 			res.writeHead(200, {'Content-Type': 'text/html'});
-			var html = render(templete, data);   
+			console.log('aaa'+escape);
+			var html = render(complie(templete,escape), data);   
 			res.end(html);  
 		});
 	}; 
-	res.render('home.html',{username: req.params.username});
+	//res.render('home.html',{username: req.params.username});
+	res.render('home.html',{username: "<script>alert(\"I am XSS.\")</script>"});
 }
 
 
