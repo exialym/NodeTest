@@ -3,6 +3,8 @@ var url = require("url");
 var fs = require("fs");
 var crypto = require('crypto');
 var formidable = require('formidable'); 
+var mime = require('mime'); 
+var pathUtil = require('path'); 
 
 
 var pathRegexp = function(path) {  
@@ -171,8 +173,23 @@ app.use(errorProsseser1);
 app.use(errorProsseser2);
 app.get('/user/:username/:ID', cookie , getUser);
 app.get('/games/:username', getGames); 
+app.get('/download',download);
 
-
+function download(req,res){
+	res.sendfile = function (filepath) {   
+		fs.stat(filepath, function(err, stat) {     
+			var stream = fs.createReadStream(filepath); // 设置内容     
+			res.setHeader('Content-Type', mime.lookup(filepath));     // 设置长     
+			res.setHeader('Content-Length', stat.size);     // 设置为附件     
+			res.setHeader('Content-Disposition',' attachment; filename="' + pathUtil.basename(filepath) + '"');     
+			res.writeHead(200);  
+			//由于res也是个可读可写流，这里我们直接使用pipe方法。
+			//这个方法监听stream的data事件和end事件，分别会调用res的write方法和end方法   
+			stream.pipe(res);   
+		}); 
+	};
+	res.sendfile('test.js');
+}
 function addUser(req, res){
 	res.end('addUser');
 }
@@ -190,7 +207,7 @@ function getUser(req, res){
 }
 function getGames(req, res){
 	fs.readFile('home.html', 'utf-8', function(err,data){
-		res.writeHead(200);
+		res.writeHead(200, {'Content-Type': 'text/html'});
 		console.log(err);   
 		res.write(data);
 		res.end(); 
@@ -206,10 +223,10 @@ var server = http.createServer(function (req, res) {
 	//匹配路由  
 	var match = function (pathname, routes) {   
 		var stacks = []; 
+
 		for (var i = 0; i < routes.length; i++) {     
 			var route = routes[i];     // 正则配  
 			console.log(pathname);
-
 			var reg = route.path.regexp; 
 			console.log(reg);     
 			var keys = route.path.keys;    
@@ -220,15 +237,15 @@ var server = http.createServer(function (req, res) {
 			console.log(matched);
 			if (matched) {       // 具体       
 				var params = {};       
-				for (var i = 0, l = keys.length; i < l; i++) {         
-					var value = matched[i + 1];         
+				for (var j = 0, l = keys.length; j < l; j++) {         
+					var value = matched[j + 1];         
 					if (value) {           
-						params[keys[i]] = value;         
+						params[keys[j]] = value;         
 					}       
 				}       
 				req.params = params;       
 	      		stacks = stacks.concat(route.stack);      
-	      	}   
+	      	} 
 	    }  
 	    return stacks; 
 	};
@@ -239,9 +256,12 @@ var server = http.createServer(function (req, res) {
 	if (stacks.length) {     
 		handle(req, res, stacks);   
 	} else {     
-		// 处理404请求   
-		res.writeHead(404);     
-		res.end('no such controller'); 
+		res.redirect = function (url) {   
+			res.setHeader('Location', url);   
+			res.writeHead(302);   
+			res.end('Redirect to ' + url); 
+		};  
+		res.redirect('www.baidu.com');
 	} 
 	
 }).listen(1337); 
