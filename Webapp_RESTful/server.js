@@ -162,7 +162,16 @@ var handle500 = function (err, req, res, stack) {
 	// 启动执行   
 	next(); 
 }; 
-
+var render = function (str, data) {   
+	var tpl = str.replace(/<%=([\s\S]+?)%>/g, function(match, code) { 
+		console.log(code);
+		return "' + obj." + code + ";";   
+	}); 
+	tpl = "var tpl = '" + tpl + "\nreturn tpl;";   
+	console.log(tpl);
+	var complied = new Function('obj', tpl);   
+	return complied(data); 
+};
 // 路由绑定
 app.post('/user/:username', addUser); 
 app.delete('/user/:username', removeUser); 
@@ -206,13 +215,17 @@ function getUser(req, res){
 	res.end('\nCookie:'+req.cookies);
 }
 function getGames(req, res){
-	fs.readFile('home.html', 'utf-8', function(err,data){
-		res.writeHead(200, {'Content-Type': 'text/html'});
-		console.log(err);   
-		res.write(data);
-		res.end(); 
-	});
+	res.render = function (view, data) {   
+		res.setHeader('Content-Type', 'text/html');   
+		fs.readFile(view, 'utf-8', function(err,templete){
+			res.writeHead(200, {'Content-Type': 'text/html'});
+			var html = render(templete, data);   
+			res.end(html);  
+		});
+	}; 
+	res.render('home.html',{username: req.params.username});
 }
+
 
 var server = http.createServer(function (req, res) {   
 	//http://localhost:1337/user/exialym/123?haha=456&nono=789
