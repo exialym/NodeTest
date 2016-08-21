@@ -179,7 +179,27 @@ var escape = function (html) {
 // 	tpl = 'var tpl = "";\nwith (obj) {' + tpl + '}\nreturn tpl;'; 
 // 	return new Function('obj','escape', tpl); 
 // }; 
+var files = {};
+var preComplie = function (str) {
+	var replaced = str.replace(/<%\s+(include.*)\s+%>/g, function (match, code) {
+		var partial = code.split(/\s/)[1]; 
+		console.log(partial);
+		if (!files[partial]) {
+			files[partial] = fs.readFileSync(__dirname+partial, 'utf-8'); 
+		}
+		return files[partial]; 
+	});
+	//嵌套替换
+	if (str.match(/<%\s+(include.*)\s+%>/)) {
+		return preComplie(replaced); 
+	} else {
+		return replaced; 
+	}
+};
 var complie = function (str) {
+	console.log(str);
+	str = preComplie(str);
+	console.log(str);
 	var tpl = str.replace(/\n/g, '\\n') // 将换行符 换 
 		.replace(/<%=([\s\S]+?)%>/g, function (match, code) {
 			// 转义
@@ -194,6 +214,7 @@ var complie = function (str) {
 	// 转换空行 3 
 	tpl = tpl.replace(/''/g, '\'\\n\'');
 	tpl = 'var tpl = "";\nwith (obj || {}) {\n' + tpl + '\n}\nreturn tpl;';
+	console.log(tpl);
 	return new Function('obj', 'escape', tpl);
 };
 var render = function (complied, data) {   
@@ -244,10 +265,12 @@ function getUser(req, res){
 var cache = {};
 function getGames(req, res){
 	res.render = function (view, data) {   
+		console.log(view);
 		if (!cache[view]) {
        var text;
        try {
 				text = fs.readFileSync(view, 'utf-8'); 
+				console.log(text);
 			} catch (e) {
 				res.writeHead(500, {'Content-Type': 'text/html'}); 
 				res.end('模板文件错误');
@@ -261,7 +284,7 @@ function getGames(req, res){
 		res.end(html);  
 	}; 
 	//res.render('home.html',{username: req.params.username});
-	res.render('/Users/exialym/Desktop/Git/NodeTest/Webapp_RESTful/home.html',{items: [{name: 'Lion'}, {name: 'Rabbit'}]});
+	res.render(__dirname+'/home.html',{items: [{name: 'Lion'}, {name: 'Rabbit'}]});
 }
 
 
