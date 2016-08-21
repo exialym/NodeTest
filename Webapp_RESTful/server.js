@@ -162,13 +162,7 @@ var handle500 = function (err, req, res, stack) {
 	// 启动执行   
 	next(); 
 }; 
-// var complied = function(str) {
-// 	var tpl = str.replace(/<%=([\s\S]+?)%>/g, function(match, code) { 
-// 		return "' + obj." + code + ";";   
-// 	}); 
-// 	tpl = "var tpl = '" + tpl + "\nreturn tpl;";   
-// 	return new Function('obj', tpl);
-// }
+
 var escape = function (html) {   
 	return String(html)
 		.replace(/&(?!\w+;)/g, '&amp;')     
@@ -177,14 +171,31 @@ var escape = function (html) {
 		.replace(/"/g, '&quot;')     
 		.replace(/'/g, '&#039;'); 
 };
-var complie = function (str) {   // 模板是换的   
-	var tpl = str.replace(/<%=([\s\S]+?)%>/g, function (match, code) {      
-		return "' +  escape(" + code + ");";   
-	});  
-	tpl = "tpl = '" + tpl + "";   
-	tpl = 'var tpl = "";\nwith (obj) {' + tpl + '}\nreturn tpl;'; 
-	return new Function('obj','escape', tpl); 
-}; 
+// var complie = function (str) {   // 模板是换的   
+// 	var tpl = str.replace(/<%=([\s\S]+?)%>/g, function (match, code) {      
+// 		return "' +  escape(" + code + ");";   
+// 	});  
+// 	tpl = "tpl = '" + tpl + "";   
+// 	tpl = 'var tpl = "";\nwith (obj) {' + tpl + '}\nreturn tpl;'; 
+// 	return new Function('obj','escape', tpl); 
+// }; 
+var complie = function (str) {
+	var tpl = str.replace(/\n/g, '\\n') // 将换行符 换 
+		.replace(/<%=([\s\S]+?)%>/g, function (match, code) {
+			// 转义
+			return "' + escape(" + code + ");+'"; 
+		})
+		.replace(/<%([\s\S]+?)%>/g, function (match, code) {
+			return "';\n" + code + "\ntpl += '"; 
+		})
+		.replace(/\'\n/g, '\'')
+		.replace(/\n\'/gm, '\'');
+	tpl = "tpl = '" + tpl + "';";
+	// 转换空行 3 
+	tpl = tpl.replace(/''/g, '\'\\n\'');
+	tpl = 'var tpl = "";\nwith (obj || {}) {\n' + tpl + '\n}\nreturn tpl;';
+	return new Function('obj', 'escape', tpl);
+};
 var render = function (complied, data) {   
 	return complied(data,escape); 
 };
@@ -230,18 +241,27 @@ function getUser(req, res){
 	res.write('\nquery:'+req.query.haha);
 	res.end('\nCookie:'+req.cookies);
 }
+var cache = {};
 function getGames(req, res){
 	res.render = function (view, data) {   
-		res.setHeader('Content-Type', 'text/html');   
-		fs.readFile(view, 'utf-8', function(err,templete){
-			res.writeHead(200, {'Content-Type': 'text/html'});
-			console.log('aaa'+escape);
-			var html = render(complie(templete,escape), data);   
-			res.end(html);  
-		});
+		if (!cache[view]) {
+       var text;
+       try {
+				text = fs.readFileSync(view, 'utf-8'); 
+			} catch (e) {
+				res.writeHead(500, {'Content-Type': 'text/html'}); 
+				res.end('模板文件错误');
+				return;
+			}
+			cache[view] = complie(text,escape);
+		}
+		var complied = cache[view];
+		res.writeHead(200, {'Content-Type': 'text/html'});
+		var html = render(complied, data);   
+		res.end(html);  
 	}; 
 	//res.render('home.html',{username: req.params.username});
-	res.render('home.html',{username: "<script>alert(\"I am XSS.\")</script>"});
+	res.render('/Users/exialym/Desktop/Git/NodeTest/Webapp_RESTful/home.html',{items: [{name: 'Lion'}, {name: 'Rabbit'}]});
 }
 
 

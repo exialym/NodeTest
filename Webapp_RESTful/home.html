@@ -1,27 +1,13 @@
-Hello <%=username%>
-<!-- <!DOCTYPE html>
-<html lang="zh-CN">
-<head>
-	<meta charset="utf-8" />
-	<meta http-equiv="X-UA-Compatible" content="IE=edge" />
-	<meta name="viewport" content="width=device-width, initial-scale=1" />
-	<script src="/static/test.js"></script>
-	<title>首页</title>   
-</head>
-<body>
-	<div>Hello <%=username=%></div>
-	<form action="/index/upload" method="post">   
-		<label for="username">Username:</label> 
-		<input type="text" name="username" id="username" />    <br />  
-		<input type="submit" name="submit" value="Submit" /> 
-	</form> 
-	<form action="/index/upload_file" method="post" enctype="multipart/form-data">   
-		<label for="username">Username:</label> <input type="text" name="username" id="username" />    
-		<label for="file">Filename:</label> <input type="file" name="file" id="file" multiple="multiple"/>    <br />   
-		<input type="submit" name="submit" value="Submit" /> 
-	</form> 
-</body>
-</html> -->
+<% if (obj.user) { %>
+	<h2><%= user.name %></h2>
+<%} else {%> 
+	<h2>anonymou</h2>
+<% } %>
+<% for (var i = 0; i < items.length; i++) { %>
+	<%var item = items[i];%>
+	<%console.log(item)%>
+	<p><%=item.name%></p>
+<% } %>
 
 
 
