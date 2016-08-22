@@ -5,7 +5,13 @@ cp.exec('node ./worker.js', function (err, stdout, stderr) {
 	console.log(err); 
 }); 
 //使用execFile直接执行JS文件要在文件前加上#!/usr/bin/env node 
-cp.execFile('./worker.js', function (err, stdout, stderr) {   
-	console.log("execFile:"+stdout); 
-}); 
+// cp.execFile('./worker.js', function (err, stdout, stderr) {   
+// 	console.log("execFile:"+stdout); 
+// }); 
 cp.fork('./worker.js'); 
+
+var n = cp.fork('./sub.js');  
+n.on('message', function (m) {   
+	console.log('PARENT got message:', m); 
+});  
+n.send({hello: 'world'}); 
