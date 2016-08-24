@@ -21,3 +21,9 @@ process.on('message', function (m, tcp) {
 		});
 	} 
 });
+process.on('uncaughtException', function () {   
+	process.send({act: 'suicide'}); 
+	worker.close(function () {     
+		process.exit(1);   
+	}); 
+}); 

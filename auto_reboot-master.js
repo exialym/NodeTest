@@ -6,11 +6,16 @@ server.listen(1337);
 var workers = {}; 
 var createWorker = function () {   
 	var worker = fork(__dirname + '/auto_reboot-worker.js');   
-	//子进程退出时重新启动新的进程  
+	//子进程发出自杀信号时重新启动新的进程  
+	worker.on('message', function (message) {     
+		if (message.act === 'suicide') {   
+			console.log(worker.pid+'suicide')    
+			createWorker();     
+		}   
+	}); 
 	worker.on('exit', function () {     
 		console.log('Worker ' + worker.pid + ' exited.');     
 		delete workers[worker.pid];     
-		createWorker();   
 	});   
 	// 句柄转发   
 	worker.send('server', server);   
