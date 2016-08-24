@@ -26,4 +26,7 @@ process.on('uncaughtException', function () {
 	worker.close(function () {     
 		process.exit(1);   
 	}); 
+	setTimeout(function () {     
+		process.exit(1);   
+	}, 5000); 
 }); 
